@@ -1,0 +1,86 @@
+--1
+CREATE PROC MAX_3 (@V1 INT, @V2 INT, @V3 INT, @RES INT OUTPUT) AS
+BEGIN
+	IF @V1 > @V2 AND @V1 > @V3
+		SET @RES = @V1
+	ELSE IF @V2 > @V1 AND @V2 > @V3
+		SET @RES = @V2
+	ELSE 
+		SET @RES = @V3
+END
+
+DECLARE @MAX INT
+EXEC MAX_3 10, 3, 6, @MAX OUTPUT
+PRINT 'MAX = ' + CONVERT(VARCHAR(2), @MAX)
+
+--2:
+CREATE PROC STU_RET (@AGE INT OUTPUT, @NAME VARCHAR(60) OUTPUT) AS
+BEGIN
+	SET @NAME = (SELECT sName FROM Student WHERE regno = '21-ARID-4333')
+	SET @AGE = (SELECT sAge FROM Student WHERE regno = '21-ARID-4333')
+END
+DECLARE @N VARCHAR(60)
+DECLARE @A INT
+EXEC STU_RET @A OUTPUT, @N OUTPUT
+
+PRINT @A
+PRINT @N
+
+--3:
+--a:
+CREATE PROC QPOINTS (@regno VARCHAR(20), @QP INT OUTPUT) AS 
+BEGIN
+	SET @QP = (SELECT SUM(quality_points) FROM Enrollment WHERE regno = @regno)
+END
+--b:
+CREATE PROC CREDITS (@regno VARCHAR(20), @CR INT OUTPUT) AS 
+BEGIN
+	SET @CR = (SELECT SUM(c.credit_hours) FROM Student s 
+	INNER JOIN Enrollment e ON s.regno = e.regno 
+	INNER JOIN Course c ON e.cCode = c.cCode 
+	WHERE s.regno = @regno)
+END
+DECLARE @CRR INT
+EXEC CREDITS '21-ARID-4591', @CRR OUTPUT
+PRINT @CRR
+
+--c
+CREATE PROC Update_CGPA (@R VARCHAR(20), @TP INT, @TCR INT) AS
+BEGIN 
+	DECLARE @N_CPGA FLOAT = @TP / @TCR
+	UPDATE Student SET sCGPA = @N_CPGA WHERE regno = @R
+END
+
+--4
+--a:
+DROP PROC Return_Limit_Courses
+CREATE PROC Return_Limit_Courses (@R VARCHAR(20), @SEM INT, @ST VARCHAR(10) OUTPUT) AS
+BEGIN 
+	DECLARE @TP INT = (SELECT SUM(c.credit_hours) FROM Enrollment e 
+	INNER JOIN Course c ON e.cCode = c.cCode
+	WHERE e.regno = @R AND e.semester = @SEM)
+	IF @TP < 18
+		SET @ST = 'YES'
+	ELSE 
+		SET @ST = 'NO'
+END
+DECLARE @STT  VARCHAR(10)
+EXEC Return_Limit_Courses '21-ARID-4591', 6, @STT OUTPUT
+PRINT @STT
+
+SELECT * FROM Enrollment
+--b:
+DROP PROC Insert_Student_Enrollment
+CREATE PROC Insert_Student_Enrollment (@R VARCHAR(20), @c VARCHAR(15), @SEM INT, @g CHAR(1), @STT VARCHAR(10)) AS
+BEGIN 
+	 IF @STT = 'YES'
+		INSERT INTO Enrollment VALUES(@R, @c, @SEM, @g)
+	ELSE 
+		PRINT 'CREDIT HOURS EXCEEDED'
+END
+DECLARE @STT  VARCHAR(10)
+EXEC Return_Limit_Courses '21-ARID-4591', 6, @STT OUTPUT
+PRINT @STT
+
+EXEC Insert_Student_Enrollment '21-ARID-4591', 'CSC-314', 6, 'A', @STT
+	
